@@ -289,6 +289,25 @@ If you prefer to deploy manually, follow these steps:
 - Press Ctrl+C in the terminal where you ran the script
 - All child processes will be terminated automatically
 
+## Terraform Security Considerations
+
+⚠️ **Important**: The Terraform configuration in this project contains deliberate security simplifications for demonstration purposes.
+
+### Security Disclaimer
+
+This infrastructure is for demonstration and educational purposes only. Some configurations (such as open security groups, public subnets, and default encryption) are intentionally left less restrictive to simplify public access and testing.
+
+**Do not use these settings in production**:
+- Open access from all IPs (`0.0.0.0/0`) in security groups is a major security risk
+- Public subnets and internet-facing load balancers should be properly secured
+- ECR repositories should use immutable tags to prevent image tampering
+- Load balancers should be configured to drop invalid headers
+- VPC flow logs should be enabled for network traffic monitoring
+- Resources should use encryption for sensitive data
+- Security groups should have descriptive rules for better management
+
+For a production environment, these security concerns must be addressed according to your organization's security requirements and best practices.
+
 ## Security Notice
 
 ⚠️ **Important**: This is a demo project not intended for production use.
