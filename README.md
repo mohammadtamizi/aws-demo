@@ -279,6 +279,21 @@ If you prefer to deploy manually, follow these steps:
 - Press Ctrl+C in the terminal where you ran the script
 - All child processes will be terminated automatically
 
+## Security Notice
+
+⚠️ **Important**: This is a demo project not intended for production use.
+
+- This repository contains dependencies with known security vulnerabilities (identified by `npm audit`).
+- These vulnerabilities primarily exist in transitive dependencies of the Clerk authentication system and some older packages.
+- Since this is a temporary demonstration project that doesn't store sensitive user data, we've documented these issues rather than implementing breaking changes.
+
+For details on security considerations and the approach taken for this demo, please see [SECURITY.md](SECURITY.md).
+
+If you plan to use this code in production:
+1. Update all dependencies to secure versions
+2. Run `npm audit fix` to address vulnerabilities
+3. Test thoroughly after updates
+
 ## License
 
 MIT

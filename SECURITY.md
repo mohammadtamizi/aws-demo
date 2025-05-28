@@ -14,6 +14,25 @@ If you discover a security vulnerability in this project, please follow these st
 
 We will acknowledge receipt of your vulnerability report as soon as possible and will work with you to understand and address the issue.
 
+## Security Notice for Demo Project
+
+**Important**: This repository is a personal demo/portfolio project intended for showcasing purposes only. It is not designed for production use or to handle sensitive information.
+
+- This project contains dependencies with known security vulnerabilities that have been identified by `npm audit`.
+- These vulnerabilities primarily exist in transitive dependencies (dependencies of dependencies), especially in the Clerk authentication system and older packages.
+- Since this is a temporary demonstration project that doesn't store sensitive user data and will only be deployed for a short period, we have documented these issues rather than implementing breaking changes.
+
+If you plan to fork or use this project as a basis for production work:
+1. Run `npm audit fix` and address all vulnerabilities
+2. Update Clerk and other dependencies to their latest secure versions
+3. Test thoroughly after making these updates
+
+## Known Vulnerability Areas
+
+- Authentication libraries (Clerk)
+- Older dependencies like `request`, `hawk`, `hoek`, and others
+- Some development dependencies in the slidev presentation system
+
 ## Security Best Practices for Contributors
 
 ### General Guidelines
