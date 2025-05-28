@@ -80,8 +80,26 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Check if image already exists in ECR
+        id: check-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Check if the image with the current commit SHA already exists
+          aws ecr describe-images --repository-name $ECR_REPOSITORY --image-ids imageTag=$IMAGE_TAG --region $AWS_REGION > /dev/null 2>&1
+          if [ $? -eq 0 ]; then
+            echo "Image already exists, skipping build and push"
+            echo "image_exists=true" >> $GITHUB_OUTPUT
+            echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          else
+            echo "Image does not exist, will build and push"
+            echo "image_exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
+        if: steps.check-image.outputs.image_exists != 'true'
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
@@ -92,6 +110,16 @@ jobs:
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$BRANCH_TAG-latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BRANCH_TAG-latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Set image output when skipping build
+        id: set-image-output
+        if: steps.check-image.outputs.image_exists == 'true'
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "Using existing image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Scan Docker image for vulnerabilities
@@ -141,7 +169,7 @@ jobs:
           cd terraform
           terraform plan \
             -var="aws_region=$AWS_REGION" \
-            -var="app_image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" \
+            -var="app_image=${{ steps.build-image.outputs.image || steps.set-image-output.outputs.image }}" \
             -var="app_name=aws-demo-dev" \
             -var="environment=dev" \
             -out=tfplan
@@ -194,7 +222,7 @@ jobs:
           cd terraform
           terraform plan \
             -var="aws_region=$AWS_REGION" \
-            -var="app_image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" \
+            -var="app_image=${{ steps.build-image.outputs.image || steps.set-image-output.outputs.image }}" \
             -var="app_name=aws-demo" \
             -var="environment=prod" \
             -out=tfplan
