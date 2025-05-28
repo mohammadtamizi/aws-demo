@@ -18,9 +18,10 @@ We will acknowledge receipt of your vulnerability report as soon as possible and
 
 **Important**: This repository is a personal demo/portfolio project intended for showcasing purposes only. It is not designed for production use or to handle sensitive information.
 
-- This project contains dependencies with known security vulnerabilities that have been identified by `npm audit`.
-- These vulnerabilities primarily exist in transitive dependencies of various packages.
-- Since this is a temporary demonstration project that doesn't store sensitive user data and will only be deployed for a short period, we have documented these issues rather than implementing breaking changes.
+- This project contains some dependencies with known security vulnerabilities that have been identified by `npm audit`.
+- These vulnerabilities are limited to the Slidev presentation tool dependencies and do not affect the main AWS demo application.
+- All Clerk-related vulnerabilities have been resolved by removing Clerk dependencies completely.
+- Since this is a temporary demonstration project that doesn't store sensitive user data and will only be deployed for a short period, we have documented these remaining issues rather than implementing breaking changes to the presentation tool.
 
 If you plan to fork or use this project as a basis for production work:
 1. Run `npm audit fix` and address all vulnerabilities
@@ -29,8 +30,11 @@ If you plan to fork or use this project as a basis for production work:
 
 ## Known Vulnerability Areas
 
-- Older dependencies like `request`, `hawk`, `hoek`, and others
-- Some development dependencies in the slidev presentation system
+- The AWS demo application itself has no known vulnerabilities (runs clean with `npm audit`)
+- The Slidev presentation tool has some moderate vulnerabilities in:
+  - `dompurify` (used by mermaid for diagrams)
+  - `esbuild` (used by vite and slidev build tools)
+  - These issues do not affect the main application functionality or security
 
 ## Security Best Practices for Contributors
 
@@ -109,4 +113,10 @@ If you plan to fork or use this project as a basis for production work:
 
 ## Authentication Changes
 
-Note: This project initially used Clerk for authentication but was simplified to remove authentication for the demo. If you need authentication for your production use, please consider implementing a secure authentication solution.
+Note: This project initially used Clerk for authentication but has been completely refactored to remove all Clerk dependencies. All Clerk-related packages have been removed from both package.json and package-lock.json files. The application now uses a simplified header component without authentication, which is sufficient for this AWS deployment demo.
+
+If you need authentication for your production use, please consider implementing a secure authentication solution such as:
+- AWS Cognito
+- Auth0
+- Firebase Authentication
+- Supabase Auth
