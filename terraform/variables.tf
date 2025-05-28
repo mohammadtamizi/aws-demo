@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "The AWS region to deploy resources into"
   type        = string
-  default     = "us-east-1"
+  default     = "eu-west-1"
 }
 
 variable "app_name" {
@@ -24,7 +24,7 @@ variable "app_count" {
 variable "availability_zones" {
   description = "List of availability zones to use for the subnets in the VPC"
   type        = list(string)
-  default     = ["us-east-1a", "us-east-1b", "us-east-1c"]
+  default     = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
 }
 
 variable "container_cpu" {

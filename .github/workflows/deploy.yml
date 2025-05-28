@@ -58,7 +58,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: eu-west-1
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -113,7 +113,7 @@ jobs:
           terraform init \
             -backend-config="bucket=$TF_STATE_BUCKET" \
             -backend-config="key=terraform-$ENV.tfstate" \
-            -backend-config="region=us-east-1"
+            -backend-config="region=eu-west-1"
 
       - name: Terraform Apply
         env:
@@ -124,7 +124,7 @@ jobs:
         run: |
           cd terraform
           terraform apply -auto-approve \
-            -var="aws_region=us-east-1" \
+            -var="aws_region=eu-west-1" \
             -var="app_image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
             -var="app_name=aws-demo${{ github.event.inputs.environment == 'dev' && '-dev' || '' }}" \
             -var="environment=$ENV"
