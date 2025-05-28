@@ -451,10 +451,10 @@ resource "aws_ecs_service" "app" {
     container_port   = 3000
   }
 
-  depends_on = concat(
-    [aws_lb_listener.http, aws_iam_role_policy_attachment.ecs_task_execution_role_policy],
-    var.acm_certificate_arn != "" ? [aws_lb_listener.https[0]] : []
-  )
+  depends_on = [
+  aws_iam_role.execution_role,
+  aws_cloudwatch_log_group.logs
+]
 
   tags = {
     Name = "${var.app_name}-service"
