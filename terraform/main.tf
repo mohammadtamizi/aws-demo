@@ -7,8 +7,31 @@ resource "aws_ecr_repository" "app_repo" {
   name                 = "${var.app_name}-repo"
   image_tag_mutability = "MUTABLE"
 
-  image_scanning_configuration {
-    scan_on_push = true
+  # Note: The repository-level image_scanning_configuration has been deprecated
+  # AWS now recommends configuring scanning at the registry level using:
+  # aws_ecr_registry_scanning_configuration resource
+  # For this demo, we'll rely on the registry-level default scanning configuration
+}
+
+# Configure ECR Registry Scanning (replacing deprecated repository-level scanning)
+resource "aws_ecr_registry_scanning_configuration" "example" {
+  scan_type = "ENHANCED" # Use enhanced scanning for better vulnerability detection
+
+  rule {
+    scan_frequency = "SCAN_ON_PUSH"
+    repository_filter {
+      filter      = "${var.app_name}-repo"
+      filter_type = "WILDCARD"
+    }
+  }
+
+  # Additional rule for periodic scanning of all repositories as a fallback
+  rule {
+    scan_frequency = "CONTINUOUS_SCAN"
+    repository_filter {
+      filter      = "*"
+      filter_type = "WILDCARD"
+    }
   }
 }
 

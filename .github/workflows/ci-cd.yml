@@ -12,7 +12,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: aws-demo-app
+  ECR_REPOSITORY: aws-demo-repo
   ECS_CLUSTER: aws-demo-cluster
   ECS_SERVICE: aws-demo-service
   TF_STATE_BUCKET: aws-demo-terraform-state
