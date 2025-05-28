@@ -10,6 +10,6 @@ terraform {
   # using the -backend-config options
   backend "s3" {
     region = "us-east-1"
-    bucket = "aws-demo-terraform-state-${var.environment}"
+    # Bucket name will be provided via -backend-config
   }
 }
