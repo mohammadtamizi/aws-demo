@@ -8,5 +8,7 @@ terraform {
 
   # The S3 backend is configured dynamically during 'terraform init' in the CI/CD pipeline
   # using the -backend-config options
-  backend "s3" {}
+  backend "s3" {
+    region = "us-east-1"
+  }
 }
