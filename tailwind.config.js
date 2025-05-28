@@ -1,13 +1,32 @@
+/**
+ * Tailwind CSS Configuration
+ *
+ * This file configures Tailwind CSS for the application, including:
+ * - Theme customization (colors, typography, spacing, etc.)
+ * - Content paths for purging unused CSS
+ * - Plugin integration
+ * - Dark mode configuration
+ * - Animation settings
+ *
+ * The configuration extends the default Tailwind theme with custom
+ * design tokens and shadcn/ui compatibility.
+ */
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // Enable dark mode with class-based switching
   darkMode: ["class"],
+
+  // Specify files to scan for used classes to avoid purging needed styles
   content: [
     './pages/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
   ],
+
   theme: {
+    // Container configuration for centered, responsive layouts
     container: {
       center: true,
       padding: "2rem",
@@ -15,7 +34,10 @@ module.exports = {
         "2xl": "1400px",
       },
     },
+
+    // Theme extensions and customizations
     extend: {
+      // Custom color palette using CSS variables for theme flexibility
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -51,11 +73,15 @@ module.exports = {
           foreground: "hsl(var(--card-foreground))",
         },
       },
+
+      // Custom border radius using CSS variables
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+
+      // Animation keyframes for interactive components
       keyframes: {
         "accordion-down": {
           from: { height: 0 },
@@ -66,11 +92,15 @@ module.exports = {
           to: { height: 0 },
         },
       },
+
+      // Named animations using the keyframes
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
     },
   },
+
+  // Additional Tailwind plugins (none currently used)
   plugins: [],
 }
