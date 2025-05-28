@@ -1,0 +1,10 @@
+.git
+node_modules
+npm-debug.log
+README.md
+.next
+.env
+.env.local
+terraform/
+.github/
+slides/ 

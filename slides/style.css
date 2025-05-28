@@ -1,0 +1,50 @@
+/* Global styles for Slidev presentation */
+
+/* Ensure slides have a white background */
+.slidev-layout {
+  background-color: #ffffff !important;
+}
+
+/* Make sure images maintain original colors and rendering */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  background-color: transparent;
+  max-width: 100%;
+  height: auto;
+}
+
+/* For architecture diagrams specifically */
+img[src*="containerized"] {
+  background-color: white;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  /* Prevent any color alterations */
+  filter: none;
+  /* Ensure diagram fits within slide */
+  max-height: 75vh;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Make sure slide content has good contrast */
+.slidev-layout .content {
+  color: #000;
+  opacity: 1 !important;
+}
+
+/* Custom container for architecture diagrams */
+.diagram-container {
+  background-color: white;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+} 

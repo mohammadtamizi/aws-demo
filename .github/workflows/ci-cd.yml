@@ -1,0 +1,110 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+      - dev
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: aws-demo-app
+  ECS_CLUSTER: aws-demo-cluster
+  ECS_SERVICE: aws-demo-service
+  TF_STATE_BUCKET: aws-demo-terraform-state
+
+jobs:
+  test:
+    name: Test Application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd aws-demo
+          npm ci
+
+      - name: Run linting
+        run: |
+          cd aws-demo
+          npm run lint
+
+  build-and-deploy:
+    name: Build and Deploy
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' # Only deploy on main branch
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build a docker container and push it to ECR
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.4.0
+
+      - name: Terraform Init
+        id: init
+        run: |
+          cd terraform
+          terraform init \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=terraform.tfstate" \
+            -backend-config="region=$AWS_REGION"
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          cd terraform
+          terraform plan \
+            -var="aws_region=$AWS_REGION" \
+            -var="app_image=${{ steps.build-image.outputs.image }}" \
+            -var="app_name=aws-demo" \
+            -out=tfplan
+        continue-on-error: true
+
+      - name: Terraform Apply
+        id: apply
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan
+
+      - name: Get Application URL
+        run: |
+          cd terraform
+          echo "::notice::Application URL: $(terraform output -raw alb_dns_name)" 
