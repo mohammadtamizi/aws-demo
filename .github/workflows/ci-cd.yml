@@ -86,14 +86,19 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Check if the image with the current commit SHA already exists
-          aws ecr describe-images --repository-name $ECR_REPOSITORY --image-ids imageTag=$IMAGE_TAG --region $AWS_REGION > /dev/null 2>&1
-          if [ $? -eq 0 ]; then
-            echo "Image already exists, skipping build and push"
-            echo "image_exists=true" >> $GITHUB_OUTPUT
-            echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          # First check if the repository exists
+          if aws ecr describe-repositories --repository-names $ECR_REPOSITORY --region $AWS_REGION > /dev/null 2>&1; then
+            # If repository exists, check if the image exists
+            if aws ecr describe-images --repository-name $ECR_REPOSITORY --image-ids imageTag=$IMAGE_TAG --region $AWS_REGION > /dev/null 2>&1; then
+              echo "Image already exists, skipping build and push"
+              echo "image_exists=true" >> $GITHUB_OUTPUT
+              echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+            else
+              echo "Image does not exist, will build and push"
+              echo "image_exists=false" >> $GITHUB_OUTPUT
+            fi
           else
-            echo "Image does not exist, will build and push"
+            echo "Repository does not exist yet, will create it during build"
             echo "image_exists=false" >> $GITHUB_OUTPUT
           fi
 
