@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     branches:
       - main
@@ -62,11 +63,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build-and-deploy:
-    name: Build and Deploy
+  build:
+    name: Build Docker Image
     needs: [test, security-scan]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' # Only deploy on main branch
+    # Build on both main and dev branches
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -87,12 +89,13 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
+          BRANCH_TAG: ${{ github.ref_name }}
         run: |
-          # Build a docker container and push it to ECR
+          # Build a docker container and push it to ECR with branch tag
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$BRANCH_TAG-latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BRANCH_TAG-latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Scan Docker image for vulnerabilities
@@ -105,6 +108,22 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
+  deploy-dev:
+    name: Deploy to Development
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -116,7 +135,7 @@ jobs:
           cd terraform
           terraform init \
             -backend-config="bucket=$TF_STATE_BUCKET" \
-            -backend-config="key=terraform.tfstate" \
+            -backend-config="key=terraform-dev.tfstate" \
             -backend-config="region=$AWS_REGION"
 
       - name: Terraform Plan
@@ -125,8 +144,62 @@ jobs:
           cd terraform
           terraform plan \
             -var="aws_region=$AWS_REGION" \
-            -var="app_image=${{ steps.build-image.outputs.image }}" \
+            -var="app_image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" \
+            -var="app_name=aws-demo-dev" \
+            -var="environment=dev" \
+            -out=tfplan
+        continue-on-error: true
+
+      - name: Terraform Apply
+        id: apply
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan
+
+      - name: Get Application URL
+        run: |
+          cd terraform
+          echo "::notice::Development Application URL: $(terraform output -raw alb_dns_name)"
+
+  deploy-prod:
+    name: Deploy to Production
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.4.0
+
+      - name: Terraform Init
+        id: init
+        run: |
+          cd terraform
+          terraform init \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=terraform-prod.tfstate" \
+            -backend-config="region=$AWS_REGION"
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          cd terraform
+          terraform plan \
+            -var="aws_region=$AWS_REGION" \
+            -var="app_image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" \
             -var="app_name=aws-demo" \
+            -var="environment=prod" \
             -out=tfplan
         continue-on-error: true
 
@@ -137,8 +210,8 @@ jobs:
           secret: ${{ secrets.GITHUB_TOKEN }}
           approvers: mohammadtmz
           minimum-approvals: 1
-          issue-title: "Terraform Apply Approval"
-          issue-body: "Please approve or deny the Terraform changes"
+          issue-title: "Production Deployment Approval"
+          issue-body: "Please approve or deny the production deployment"
           exclude-workflow-initiator-as-approver: false
 
       - name: Terraform Apply
@@ -150,4 +223,4 @@ jobs:
       - name: Get Application URL
         run: |
           cd terraform
-          echo "::notice::Application URL: $(terraform output -raw alb_dns_name)"
+          echo "::notice::Production Application URL: $(terraform output -raw alb_dns_name)"

@@ -148,9 +148,29 @@ Add the following secrets to your GitHub repository:
 
 ### Branch Strategy
 
-- The `dev` branch is used for development and testing
-- The `main` branch triggers the full CI/CD pipeline
-- Pull requests to main will run tests but won't deploy until merged
+This project follows the Feature Branch Workflow with two main branches:
+
+- **main**: Production-ready code. Only merged from dev branch after thorough testing.
+- **dev**: Development branch where all feature work is integrated before promotion to main.
+
+### Workflow Guidelines
+
+1. **Always work on the dev branch** for new features and fixes
+2. Create feature branches from dev for specific tasks if needed
+3. Open pull requests to merge changes back to dev
+4. Periodically merge dev into main when features are stable
+
+When working locally:
+```bash
+# Make sure you're on dev branch before starting work
+git checkout dev
+git pull origin dev
+
+# After making changes
+git add .
+git commit -m "Descriptive message"
+git push origin dev
+```
 
 ### Pipeline Workflow
 

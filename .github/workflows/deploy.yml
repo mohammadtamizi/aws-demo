@@ -1,15 +1,30 @@
-name: Deploy to AWS ECS
+name: Manual Deployment to AWS
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+      confirm:
+        description: 'Type "yes" to confirm deployment'
+        required: true
+        default: 'no'
 
 jobs:
   security-scan:
     runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'yes'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.environment == 'prod' && 'main' || 'dev' }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -35,6 +50,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.environment == 'prod' && 'main' || 'dev' }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -52,11 +69,12 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: aws-demo-app
           IMAGE_TAG: ${{ github.sha }}
+          ENV: ${{ github.event.inputs.environment }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$ENV-latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$ENV-latest
 
       - name: Scan Docker image for vulnerabilities
         uses: aquasecurity/trivy-action@master
@@ -68,25 +86,58 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-      - name: Manual approval for deployment
+      - name: Manual approval for production deployment
         uses: trstringer/manual-approval@v1
+        if: github.event.inputs.environment == 'prod'
         with:
           secret: ${{ secrets.GITHUB_TOKEN }}
           approvers: mohammadtmz
           minimum-approvals: 1
-          issue-title: "Deployment to Production Approval"
-          issue-body: "Please approve or deny the deployment to production"
+          issue-title: "Manual Production Deployment Approval"
+          issue-body: "Please approve or deny the manual deployment to production"
           exclude-workflow-initiator-as-approver: false
-          additional-approved-words: ''
-          additional-denied-words: ''
 
-      - name: Deploy to ECS
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.4.0
+
+      - name: Terraform Init
+        id: init
+        env:
+          TF_STATE_BUCKET: aws-demo-terraform-state
+          ENV: ${{ github.event.inputs.environment }}
         run: |
-          aws ecs update-service --cluster aws-demo-app-cluster --service aws-demo-app-service --force-new-deployment
+          cd terraform
+          terraform init \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=terraform-$ENV.tfstate" \
+            -backend-config="region=us-east-1"
+
+      - name: Terraform Apply
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: aws-demo-app
+          IMAGE_TAG: ${{ github.sha }}
+          ENV: ${{ github.event.inputs.environment }}
+        run: |
+          cd terraform
+          terraform apply -auto-approve \
+            -var="aws_region=us-east-1" \
+            -var="app_image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            -var="app_name=aws-demo${{ github.event.inputs.environment == 'dev' && '-dev' || '' }}" \
+            -var="environment=$ENV"
+
+      - name: Get Application URL
+        run: |
+          cd terraform
+          echo "::notice::${{ github.event.inputs.environment }} Application URL: $(terraform output -raw alb_dns_name)"
 
       - name: Publish deployment metric to CloudWatch
+        env:
+          ENV: ${{ github.event.inputs.environment }}
         run: |
           TIMESTAMP=$(date +%s)
           aws logs create-log-group --log-group-name DeploymentMetrics || true
-          aws logs create-log-stream --log-group-name DeploymentMetrics --log-stream-name Deployments || true
-          aws logs put-log-events --log-group-name DeploymentMetrics --log-stream-name Deployments --log-events timestamp=$TIMESTAMP,message="Deployed version ${{ github.sha }} at $(date)"
+          aws logs create-log-stream --log-group-name DeploymentMetrics --log-stream-name $ENV-Deployments || true
+          aws logs put-log-events --log-group-name DeploymentMetrics --log-stream-name $ENV-Deployments --log-events timestamp=$TIMESTAMP,message="Manually deployed version ${{ github.sha }} to $ENV at $(date)"
