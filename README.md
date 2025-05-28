@@ -1,6 +1,6 @@
 # AWS Deployment Demo
 
-This project demonstrates how to deploy a containerized web application to AWS using Terraform. The application is a simple Todo app built with Next.js, Convex for the backend, Clerk for authentication, and styled with Tailwind CSS and shadcn/ui components.
+This project demonstrates how to deploy a containerized web application to AWS using Terraform. The application is a simple landing page built with Next.js, Convex for the backend, and styled with Tailwind CSS and shadcn/ui components.
 
 ## Architecture
 
@@ -17,8 +17,6 @@ The architecture diagram shows how the application is deployed to AWS using:
 
 ## Features
 
-- User authentication with Clerk
-- Real-time data synchronization with Convex
 - Modern UI with Tailwind CSS and shadcn/ui
 - Docker containerization
 - AWS deployment with Terraform
@@ -50,10 +48,6 @@ The architecture diagram shows how the application is deployed to AWS using:
    ```
    # Convex
    NEXT_PUBLIC_CONVEX_URL=your_convex_url
-
-   # Clerk
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-   CLERK_SECRET_KEY=your_clerk_secret_key
    ```
 
 ## Presentation Components
@@ -142,8 +136,6 @@ Before you can use the CI/CD pipeline, you need to set up a few AWS resources:
 3. Create SSM Parameters for secrets:
    ```bash
    aws ssm put-parameter --name /aws-demo/convex-url --value "your_convex_url" --type SecureString
-   aws ssm put-parameter --name /aws-demo/clerk-publishable-key --value "your_clerk_publishable_key" --type SecureString
-   aws ssm put-parameter --name /aws-demo/clerk-secret-key --value "your_clerk_secret_key" --type SecureString
    ```
 
 ### GitHub Secrets
@@ -153,8 +145,6 @@ Add the following secrets to your GitHub repository:
 1. `AWS_ACCESS_KEY_ID`: Your AWS access key with permissions for ECR, S3, and ECS
 2. `AWS_SECRET_ACCESS_KEY`: Your AWS secret key
 3. `CONVEX_URL_PARAMETER_ARN`: The ARN of the SSM parameter for Convex URL
-4. `CLERK_PUBLISHABLE_KEY_PARAMETER_ARN`: The ARN of the SSM parameter for Clerk publishable key
-5. `CLERK_SECRET_KEY_PARAMETER_ARN`: The ARN of the SSM parameter for Clerk secret key
 
 ### Branch Strategy
 
@@ -284,7 +274,7 @@ If you prefer to deploy manually, follow these steps:
 ⚠️ **Important**: This is a demo project not intended for production use.
 
 - This repository contains dependencies with known security vulnerabilities (identified by `npm audit`).
-- These vulnerabilities primarily exist in transitive dependencies of the Clerk authentication system and some older packages.
+- These vulnerabilities primarily exist in transitive dependencies of various packages.
 - Since this is a temporary demonstration project that doesn't store sensitive user data, we've documented these issues rather than implementing breaking changes.
 
 For details on security considerations and the approach taken for this demo, please see [SECURITY.md](SECURITY.md).

@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['images.clerk.dev'],
+    domains: [],
   },
   typescript: {
     ignoreBuildErrors: true,

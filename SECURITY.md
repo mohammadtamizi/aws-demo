@@ -19,17 +19,16 @@ We will acknowledge receipt of your vulnerability report as soon as possible and
 **Important**: This repository is a personal demo/portfolio project intended for showcasing purposes only. It is not designed for production use or to handle sensitive information.
 
 - This project contains dependencies with known security vulnerabilities that have been identified by `npm audit`.
-- These vulnerabilities primarily exist in transitive dependencies (dependencies of dependencies), especially in the Clerk authentication system and older packages.
+- These vulnerabilities primarily exist in transitive dependencies of various packages.
 - Since this is a temporary demonstration project that doesn't store sensitive user data and will only be deployed for a short period, we have documented these issues rather than implementing breaking changes.
 
 If you plan to fork or use this project as a basis for production work:
 1. Run `npm audit fix` and address all vulnerabilities
-2. Update Clerk and other dependencies to their latest secure versions
+2. Update dependencies to their latest secure versions
 3. Test thoroughly after making these updates
 
 ## Known Vulnerability Areas
 
-- Authentication libraries (Clerk)
 - Older dependencies like `request`, `hawk`, `hoek`, and others
 - Some development dependencies in the slidev presentation system
 
@@ -107,3 +106,7 @@ If you plan to fork or use this project as a basis for production work:
 - [OWASP Top Ten](https://owasp.org/www-project-top-ten/)
 - [GitHub Security Best Practices](https://docs.github.com/en/code-security)
 - [Terraform Security Best Practices](https://www.terraform.io/docs/cloud/guides/recommended-policies.html)
+
+## Authentication Changes
+
+Note: This project initially used Clerk for authentication but was simplified to remove authentication for the demo. If you need authentication for your production use, please consider implementing a secure authentication solution.
