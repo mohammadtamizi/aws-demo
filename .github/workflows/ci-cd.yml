@@ -176,6 +176,8 @@ jobs:
         id: plan
         run: |
           cd terraform
+          pwd
+          # Use an absolute path for the tfplan file
           terraform plan \
             -var="aws_region=$AWS_REGION" \
             -var="app_image=${{ steps.build-image.outputs.image || steps.set-image-output.outputs.image }}" \
@@ -185,14 +187,18 @@ jobs:
             -var="clerk_publishable_key_parameter_arn=$CLERK_PUBLISHABLE_KEY_PARAMETER_ARN" \
             -var="clerk_secret_key_parameter_arn=$CLERK_SECRET_KEY_PARAMETER_ARN" \
             -input=false \
-            -out=tfplan
-        continue-on-error: true
+            -out=/tmp/tfplan_dev
+          # Debug - confirm plan file was created
+          ls -la /tmp/tfplan_dev
 
       - name: Terraform Apply
         id: apply
         run: |
           cd terraform
-          terraform apply -auto-approve -input=false tfplan
+          pwd
+          # Debug - check if plan file exists
+          ls -la /tmp/tfplan_dev
+          terraform apply -auto-approve -input=false /tmp/tfplan_dev
 
       - name: Get Application URL
         run: |
@@ -233,6 +239,8 @@ jobs:
         id: plan
         run: |
           cd terraform
+          pwd
+          # Use an absolute path for the tfplan file
           terraform plan \
             -var="aws_region=$AWS_REGION" \
             -var="app_image=${{ steps.build-image.outputs.image || steps.set-image-output.outputs.image }}" \
@@ -242,8 +250,9 @@ jobs:
             -var="clerk_publishable_key_parameter_arn=$CLERK_PUBLISHABLE_KEY_PARAMETER_ARN" \
             -var="clerk_secret_key_parameter_arn=$CLERK_SECRET_KEY_PARAMETER_ARN" \
             -input=false \
-            -out=tfplan
-        continue-on-error: true
+            -out=/tmp/tfplan_prod
+          # Debug - confirm plan file was created
+          ls -la /tmp/tfplan_prod
 
       - name: Request approval for Terraform Apply
         uses: trstringer/manual-approval@v1
@@ -260,7 +269,10 @@ jobs:
         id: apply
         run: |
           cd terraform
-          terraform apply -auto-approve -input=false tfplan
+          pwd
+          # Debug - check if plan file exists
+          ls -la /tmp/tfplan_prod
+          terraform apply -auto-approve -input=false /tmp/tfplan_prod
 
       - name: Get Application URL
         run: |
