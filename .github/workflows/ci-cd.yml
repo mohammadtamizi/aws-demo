@@ -11,7 +11,7 @@ on:
       - dev
 
 env:
-  AWS_REGION: eu-west-1
+  AWS_REGION: us-east-1
   ECR_REPOSITORY: aws-demo-repo
   ECS_CLUSTER: aws-demo-cluster
   ECS_SERVICE: aws-demo-service
