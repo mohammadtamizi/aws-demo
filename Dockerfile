@@ -15,7 +15,7 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/aws-demo/node_modules ./aws-demo/node_modules
+#COPY --from=deps /app/aws-demo/node_modules ./aws-demo/node_modules
 COPY . .
 
 # Set environment variables
