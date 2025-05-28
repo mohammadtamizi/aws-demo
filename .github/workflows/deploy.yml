@@ -5,14 +5,39 @@ on:
     branches: [main]
 
 jobs:
-  deploy:
+  security-scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --production
+
+      - name: Run SAST scanning with SonarCloud
+        uses: SonarSource/sonarcloud-github-action@v2.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  deploy:
+    needs: security-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -20,7 +45,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push image to ECR
         env:
@@ -33,14 +58,35 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
+      - name: Scan Docker image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/aws-demo-app:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Manual approval for deployment
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ secrets.GITHUB_TOKEN }}
+          approvers: mohammadtmz
+          minimum-approvals: 1
+          issue-title: "Deployment to Production Approval"
+          issue-body: "Please approve or deny the deployment to production"
+          exclude-workflow-initiator-as-approver: false
+          additional-approved-words: ''
+          additional-denied-words: ''
+
       - name: Deploy to ECS
         run: |
           aws ecs update-service --cluster aws-demo-app-cluster --service aws-demo-app-service --force-new-deployment
 
       - name: Publish deployment metric to CloudWatch
-        uses: aws-actions/action-cloudwatch-metrics@v1
-        with:
-          namespace: 'MyApp/Metrics'
-          metric-name: 'Deployment'
-          value: 1
-          unit: Count 
+        run: |
+          TIMESTAMP=$(date +%s)
+          aws logs create-log-group --log-group-name DeploymentMetrics || true
+          aws logs create-log-stream --log-group-name DeploymentMetrics --log-stream-name Deployments || true
+          aws logs put-log-events --log-group-name DeploymentMetrics --log-stream-name Deployments --log-events timestamp=$TIMESTAMP,message="Deployed version ${{ github.sha }} at $(date)" 

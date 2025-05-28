@@ -58,4 +58,16 @@ variable "environment" {
   description = "The environment (e.g., dev, staging, prod)"
   type        = string
   default     = "dev"
+}
+
+variable "acm_certificate_arn" {
+  description = "The ARN of the ACM certificate to use for HTTPS"
+  type        = string
+  default     = ""
+}
+
+variable "domain_name" {
+  description = "The domain name to use for the application"
+  type        = string
+  default     = ""
 } 

@@ -22,10 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
@@ -39,15 +39,37 @@ jobs:
         run: |
           cd aws-demo
           npm run lint
+          
+      - name: Run security audit
+        run: |
+          cd aws-demo
+          npm audit --production
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Run Terraform security scan
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: terraform
+          
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-and-deploy:
     name: Build and Deploy
-    needs: test
+    needs: [test, security-scan]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' # Only deploy on main branch
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -73,8 +95,18 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
+      - name: Scan Docker image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.4.0
 
@@ -97,6 +129,17 @@ jobs:
             -var="app_name=aws-demo" \
             -out=tfplan
         continue-on-error: true
+
+      - name: Request approval for Terraform Apply
+        uses: trstringer/manual-approval@v1
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          secret: ${{ secrets.GITHUB_TOKEN }}
+          approvers: mohammadtmz
+          minimum-approvals: 1
+          issue-title: "Terraform Apply Approval"
+          issue-body: "Please approve or deny the Terraform changes"
+          exclude-workflow-initiator-as-approver: false
 
       - name: Terraform Apply
         id: apply

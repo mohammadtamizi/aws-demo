@@ -36,6 +36,19 @@ resource "aws_subnet" "public" {
   }
 }
 
+# Private Subnets
+resource "aws_subnet" "private" {
+  count                   = length(var.availability_zones)
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.${count.index + 10}.0/24"
+  availability_zone       = var.availability_zones[count.index]
+  map_public_ip_on_launch = false
+
+  tags = {
+    Name = "${var.app_name}-private-subnet-${count.index + 1}"
+  }
+}
+
 # Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
@@ -45,7 +58,30 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-# Route Table
+# Elastic IP for NAT Gateway
+resource "aws_eip" "nat" {
+  count  = length(var.availability_zones)
+  domain = "vpc"
+
+  tags = {
+    Name = "${var.app_name}-nat-eip-${count.index + 1}"
+  }
+}
+
+# NAT Gateway
+resource "aws_nat_gateway" "main" {
+  count         = length(var.availability_zones)
+  allocation_id = aws_eip.nat[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
+
+  tags = {
+    Name = "${var.app_name}-nat-gw-${count.index + 1}"
+  }
+
+  depends_on = [aws_internet_gateway.main]
+}
+
+# Public Route Table
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
@@ -59,11 +95,33 @@ resource "aws_route_table" "public" {
   }
 }
 
-# Route Table Association
+# Private Route Tables
+resource "aws_route_table" "private" {
+  count  = length(var.availability_zones)
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.main[count.index].id
+  }
+
+  tags = {
+    Name = "${var.app_name}-private-rt-${count.index + 1}"
+  }
+}
+
+# Public Route Table Association
 resource "aws_route_table_association" "public" {
   count          = length(var.availability_zones)
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
+}
+
+# Private Route Table Association
+resource "aws_route_table_association" "private" {
+  count          = length(var.availability_zones)
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
 }
 
 # Security Group for ALB
@@ -168,6 +226,26 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# HTTPS Listener
+resource "aws_lb_listener" "https" {
+  count = var.acm_certificate_arn != "" ? 1 : 0
+  
+  load_balancer_arn = aws_lb.main.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
+  certificate_arn   = var.acm_certificate_arn
+
+  default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.app.arn
   }
@@ -209,10 +287,51 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   }
 }
 
-# Attach the AWS managed policy for ECS task execution
+# Create a more restrictive policy instead of using the managed policy
+resource "aws_iam_policy" "ecs_task_execution_policy" {
+  name        = "${var.app_name}-ecs-task-execution-policy"
+  description = "Custom policy for ECS task execution with least privilege"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "${aws_cloudwatch_log_group.app.arn}:*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameters"
+        ]
+        Resource = [
+          var.convex_url_parameter_arn,
+          var.clerk_publishable_key_parameter_arn,
+          var.clerk_secret_key_parameter_arn
+        ]
+      }
+    ]
+  })
+}
+
+# Attach custom policy instead of managed policy
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  policy_arn = aws_iam_policy.ecs_task_execution_policy.arn
 }
 
 # CloudWatch Log Group
@@ -299,8 +418,8 @@ resource "aws_ecs_service" "app" {
 
   network_configuration {
     security_groups  = [aws_security_group.ecs_tasks.id]
-    subnets          = aws_subnet.public[*].id
-    assign_public_ip = true
+    subnets          = aws_subnet.private[*].id
+    assign_public_ip = false
   }
 
   load_balancer {
@@ -309,10 +428,10 @@ resource "aws_ecs_service" "app" {
     container_port   = 3000
   }
 
-  depends_on = [
-    aws_lb_listener.http,
-    aws_iam_role_policy_attachment.ecs_task_execution_role_policy
-  ]
+  depends_on = concat(
+    [aws_lb_listener.http, aws_iam_role_policy_attachment.ecs_task_execution_role_policy],
+    var.acm_certificate_arn != "" ? [aws_lb_listener.https[0]] : []
+  )
 
   tags = {
     Name = "${var.app_name}-service"
