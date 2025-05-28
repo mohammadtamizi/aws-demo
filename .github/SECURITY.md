@@ -6,42 +6,16 @@ This repository is a demonstration project showcasing AWS deployment with Terraf
 
 ### Terraform Security Considerations
 
-Our Terraform code has been scanned with `tfsec` and flagged the following security considerations that are **acceptable for this demo**:
+For demo purposes, the Terraform configurations in this project use simplified security settings. In a production environment, you would need to implement more robust security practices:
 
-1. **Security Groups with `0.0.0.0/0` Ingress/Egress**
-   - **Risk**: Opens services to all internet IPs
-   - **Why in demo**: Allows easy public access for showcasing the application
-   - **Production recommendation**: Restrict to specific IP ranges
+- Restrict security group access to specific IP ranges
+- Place backend services in private subnets
+- Enable encryption for sensitive data
+- Set immutable tags for container images
+- Enable monitoring and auditing features
+- Add detailed descriptions to all security group rules
 
-2. **Public-facing Load Balancer (`internal = false`)**
-   - **Risk**: Exposes services to the internet
-   - **Why in demo**: Required for public access to the demo
-   - **Production recommendation**: Use WAF, implement strict security groups
-
-3. **Public Subnets**
-   - **Risk**: Resources receive public IPs
-   - **Why in demo**: Simplifies architecture for demonstration
-   - **Production recommendation**: Use private subnets for application resources
-
-4. **ECR Image Tag Mutability**
-   - **Risk**: Tags can be overwritten
-   - **Why in demo**: Allows easy updates during demo development
-   - **Production recommendation**: Set ECR tag mutability to IMMUTABLE
-
-5. **Load Balancer Configuration**
-   - **Risk**: Default settings for invalid headers
-   - **Why in demo**: Uses default AWS configurations
-   - **Production recommendation**: Set `drop_invalid_header_fields = true`
-
-6. **Missing VPC Flow Logs**
-   - **Risk**: No network traffic auditing
-   - **Why in demo**: Reduces complexity and cost for demo purposes
-   - **Production recommendation**: Enable VPC flow logs for security monitoring
-
-7. **Missing Encryption Configuration**
-   - **Risk**: Data may be stored unencrypted
-   - **Why in demo**: Uses default AWS configurations
-   - **Production recommendation**: Enable encryption for all sensitive data
+For details on these considerations, see the Terraform security disclaimer in the README.md file.
 
 ### npm Package Vulnerabilities
 
@@ -76,7 +50,7 @@ By using this project, you acknowledge that:
 As this is a demonstration project, security updates are made on a best-effort basis. We've already taken the following actions:
 
 - Removed vulnerable Clerk dependencies
-- Documented all known security considerations in Terraform
-- Added appropriate disclaimers in the README
+- Documented known security considerations in the README
+- Added appropriate security disclaimers
 
 For more details on security considerations and the approach taken for this demo, please see the main [SECURITY.md](../SECURITY.md) file.

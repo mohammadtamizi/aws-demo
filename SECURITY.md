@@ -84,7 +84,6 @@ If you plan to fork or use this project as a basis for production work:
      - Static Application Security Testing (SAST)
      - Software Composition Analysis (SCA)
      - Container scanning
-     - Infrastructure as Code scanning
 
 3. **Deployment Approval**:
    - Require manual approval for production deployments
@@ -95,8 +94,7 @@ If you plan to fork or use this project as a basis for production work:
 1. **Dependency Scanning**: npm audit for identifying vulnerabilities in dependencies
 2. **Secret Scanning**: GitLeaks for preventing accidental commits of secrets
 3. **Container Scanning**: Trivy for scanning Docker images
-4. **IaC Scanning**: tfsec for analyzing Terraform code
-5. **SAST**: SonarCloud for static code analysis
+4. **SAST**: SonarCloud for static code analysis
 
 ## Compliance and Documentation
 

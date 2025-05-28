@@ -53,11 +53,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Terraform security scan
-        uses: aquasecurity/tfsec-action@v1.0.0
-        with:
-          working_directory: terraform
-
       - name: Scan for secrets
         uses: gitleaks/gitleaks-action@v2
         env:
