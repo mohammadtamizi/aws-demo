@@ -89,4 +89,4 @@ jobs:
           TIMESTAMP=$(date +%s)
           aws logs create-log-group --log-group-name DeploymentMetrics || true
           aws logs create-log-stream --log-group-name DeploymentMetrics --log-stream-name Deployments || true
-          aws logs put-log-events --log-group-name DeploymentMetrics --log-stream-name Deployments --log-events timestamp=$TIMESTAMP,message="Deployed version ${{ github.sha }} at $(date)" 
+          aws logs put-log-events --log-group-name DeploymentMetrics --log-stream-name Deployments --log-events timestamp=$TIMESTAMP,message="Deployed version ${{ github.sha }} at $(date)"

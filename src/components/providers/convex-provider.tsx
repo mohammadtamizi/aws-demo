@@ -21,4 +21,4 @@ export function ConvexClientProvider({
       </ConvexProviderWithClerk>
     </ClerkProvider>
   );
-} 
+}

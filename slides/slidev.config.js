@@ -7,4 +7,4 @@ export default {
   },
   // Set background to white to ensure diagrams display correctly
   background: '#ffffff'
-} 
+}

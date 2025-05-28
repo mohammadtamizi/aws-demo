@@ -24,4 +24,4 @@ export function QRCodeDisplay() {
       <p className="text-sm text-gray-500">Scan to access this page</p>
     </div>
   );
-} 
+}

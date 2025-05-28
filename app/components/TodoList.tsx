@@ -12,18 +12,18 @@ import { Id } from '@/convex/_generated/dataModel';
 export const TodoList: React.FC = () => {
   const { user } = useUser();
   const userId = user?.id || '';
-  
+
   const todos = useQuery(api.todos.get, { userId });
   const addTodo = useMutation(api.todos.add);
   const toggleTodo = useMutation(api.todos.toggle);
   const removeTodo = useMutation(api.todos.remove);
-  
+
   const [newTodoText, setNewTodoText] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleAddTodo = async () => {
     if (newTodoText.trim() === '' || !user) return;
-    
+
     await addTodo({ text: newTodoText, userId });
     setNewTodoText('');
     setIsDialogOpen(false);
@@ -101,4 +101,4 @@ export const TodoList: React.FC = () => {
       </div>
     </div>
   );
-}; 
+};

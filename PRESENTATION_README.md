@@ -70,4 +70,4 @@ cd aws-demo && npx convex dev
 
 # For the slides
 cd slides && npx slidev --open
-``` 
+```

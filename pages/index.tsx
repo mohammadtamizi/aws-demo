@@ -16,19 +16,19 @@ export default function Home() {
       <main className="container mx-auto py-10">
         <div className="max-w-4xl mx-auto bg-card rounded-lg shadow-md p-6 border border-border">
           <h1 className="text-3xl font-bold mb-6 text-center">AWS Deployment Demo</h1>
-          
+
           <div className="space-y-6">
             <section>
               <h2 className="text-2xl font-semibold mb-3">Architecture Overview</h2>
               <div className="flex justify-center">
-                <img 
-                  src="/aws_containerized_website_deployment.png" 
-                  alt="AWS Architecture" 
+                <img
+                  src="/aws_containerized_website_deployment.png"
+                  alt="AWS Architecture"
                   className="max-w-full h-auto border border-border rounded-md"
                 />
               </div>
             </section>
-            
+
             <section>
               <h2 className="text-2xl font-semibold mb-3">Deployment Steps</h2>
               <ol className="list-decimal list-inside space-y-2 pl-4">
@@ -40,7 +40,7 @@ export default function Home() {
                 <li>Set up CI/CD with GitHub Actions</li>
               </ol>
             </section>
-            
+
             <section>
               <h2 className="text-2xl font-semibold mb-3">Key AWS Services</h2>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -61,4 +61,4 @@ export default function Home() {
       </footer>
     </div>
   );
-} 
+}

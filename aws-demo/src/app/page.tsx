@@ -13,7 +13,7 @@ export default function Home() {
       <div className="ambient-glow glow-top-right"></div>
       <div className="ambient-glow glow-bottom-left"></div>
       <div className="grid-pattern"></div>
-      
+
       <div className="content-container flex flex-col items-center justify-center py-20 px-4">
         {/* Hero Section */}
         <section className="text-center mb-16 max-w-3xl">

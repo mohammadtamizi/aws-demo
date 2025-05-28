@@ -51,10 +51,10 @@ def start_service(command, cwd=None, shell=True):
             bufsize=1,
             universal_newlines=True
         )
-        
+
         processes.append(process)
         print(f"Started process {process.pid}: {command}")
-        
+
         # Return the process for monitoring
         return process
     except Exception as e:
@@ -64,28 +64,28 @@ def start_service(command, cwd=None, shell=True):
 def main():
     """Main function to start all services"""
     print("Starting AWS demo presentation services...")
-    
+
     # Start Next.js app in aws-demo directory
     nextjs_process = start_service("npm run dev", cwd=AWS_DEMO_DIR)
     print("Next.js app starting at http://localhost:3001")
-    
+
     # Give Next.js a moment to start
     time.sleep(2)
-    
+
     # Start Convex backend in aws-demo directory
     convex_process = start_service("npx convex dev", cwd=AWS_DEMO_DIR)
     print("Convex backend starting...")
-    
+
     # Give Convex a moment to start
     time.sleep(2)
-    
+
     # Start Slidev in slides directory
     slidev_process = start_service("npx slidev --open", cwd=SLIDES_DIR)
     print("Slides starting at http://localhost:3030")
-    
+
     print("\nAll services started successfully!")
     print("\nPress Ctrl+C to stop all services")
-    
+
     # Keep the script running until user interrupts
     try:
         while True:
@@ -94,12 +94,12 @@ def main():
                 if process.poll() is not None:
                     print(f"Process {process.pid} exited with code {process.returncode}")
                     processes.remove(process)
-            
+
             # If all processes have terminated, exit
             if not processes:
                 print("All processes have terminated. Exiting.")
                 break
-                
+
             # Sleep to reduce CPU usage
             time.sleep(1)
     except KeyboardInterrupt:
@@ -107,4 +107,4 @@ def main():
         sys.exit(0)
 
 if __name__ == "__main__":
-    main() 
+    main()

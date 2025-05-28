@@ -6,7 +6,7 @@ export default {
   // Configure aspect ratio and scaling
   aspectRatio: 16/9,
   canvasWidth: 980,
-  
+
   // Ensure content scales properly
   scales: {
     // Scale content in presenter mode
@@ -16,4 +16,4 @@ export default {
     // Scale content in overview
     overview: 1
   }
-} 
+}

@@ -6,7 +6,7 @@ provider "aws" {
 resource "aws_ecr_repository" "app_repo" {
   name                 = "${var.app_name}-repo"
   image_tag_mutability = "MUTABLE"
-  
+
   image_scanning_configuration {
     scan_on_push = true
   }
@@ -238,7 +238,7 @@ resource "aws_lb_listener" "http" {
 # HTTPS Listener
 resource "aws_lb_listener" "https" {
   count = var.acm_certificate_arn != "" ? 1 : 0
-  
+
   load_balancer_arn = aws_lb.main.arn
   port              = 443
   protocol          = "HTTPS"
@@ -358,7 +358,7 @@ resource "aws_ecs_task_definition" "app" {
       name      = var.app_name
       image     = var.app_image
       essential = true
-      
+
       portMappings = [
         {
           containerPort = 3000
@@ -366,14 +366,14 @@ resource "aws_ecs_task_definition" "app" {
           protocol      = "tcp"
         }
       ]
-      
+
       environment = [
         {
           name  = "NODE_ENV"
           value = "production"
         }
       ]
-      
+
       secrets = [
         {
           name      = "NEXT_PUBLIC_CONVEX_URL"
@@ -388,7 +388,7 @@ resource "aws_ecs_task_definition" "app" {
           valueFrom = var.clerk_secret_key_parameter_arn
         }
       ]
-      
+
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -481,4 +481,4 @@ resource "aws_appautoscaling_policy" "ecs_policy_memory" {
     scale_in_cooldown  = 300
     scale_out_cooldown = 300
   }
-} 
+}

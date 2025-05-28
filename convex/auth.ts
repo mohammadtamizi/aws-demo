@@ -11,4 +11,4 @@ export const clerk = mutation({
     // For now, we're just logging the event type
     console.log(`Received Clerk event: ${args.type}`);
   },
-}); 
+});

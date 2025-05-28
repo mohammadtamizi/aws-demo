@@ -7,4 +7,4 @@ export default defineSchema({
     completed: v.boolean(),
     userId: v.string(),
   }),
-}); 
+});

@@ -87,4 +87,4 @@ We will acknowledge receipt of your vulnerability report as soon as possible and
 - [AWS Security Best Practices](https://aws.amazon.com/architecture/security-identity-compliance/)
 - [OWASP Top Ten](https://owasp.org/www-project-top-ten/)
 - [GitHub Security Best Practices](https://docs.github.com/en/code-security)
-- [Terraform Security Best Practices](https://www.terraform.io/docs/cloud/guides/recommended-policies.html) 
+- [Terraform Security Best Practices](https://www.terraform.io/docs/cloud/guides/recommended-policies.html)

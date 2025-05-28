@@ -39,9 +39,9 @@ class: flex items-center justify-center
 # AWS Architecture Overview
 
 <div class="diagram-container">
-  <img 
-    src="/aws_containerized_website_deployment.png" 
-    alt="AWS Architecture" 
+  <img
+    src="/aws_containerized_website_deployment.png"
+    alt="AWS Architecture"
   />
 </div>
 
@@ -154,7 +154,7 @@ resource "aws_ecs_task_definition" "app_task" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
-  
+
   container_definitions = jsonencode([{
     name      = "my-app"
     image     = "${aws_ecr_repository.app_repo.repository_url}:latest"
@@ -240,7 +240,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      
+
       - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -255,7 +255,7 @@ jobs:
 ```yaml
       - uses: aws-actions/amazon-ecr-login@v1
         id: login-ecr
-        
+
       - name: Build and push Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -266,7 +266,7 @@ jobs:
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          
+
       - name: Deploy to ECS
         run: |
           aws ecs update-service --cluster my-app-cluster --service my-app-service --force-new-deployment
@@ -321,4 +321,4 @@ class: text-center
 - This setup provides a scalable, automated, and observable infrastructure for your applications.
 - Thank you for your attention! I'm happy to answer any questions.
 
---- 
+---

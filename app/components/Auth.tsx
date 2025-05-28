@@ -10,4 +10,4 @@ export const Auth: React.FC = () => {
       </Button>
     </div>
   );
-}; 
+};

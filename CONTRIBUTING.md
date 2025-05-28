@@ -98,4 +98,4 @@ If you discover a security vulnerability, please follow the procedure outlined i
 - [Terraform Best Practices](https://www.terraform-best-practices.com/)
 - [GitHub Security Documentation](https://docs.github.com/en/code-security)
 
-Thank you for helping to make this project more secure! 
+Thank you for helping to make this project more secure!
