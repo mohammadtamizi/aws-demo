@@ -218,7 +218,7 @@ resource "aws_iam_policy" "ecs_task_execution_policy" {
           "ssm:GetParameters"
         ]
         Resource = [
-          var.convex_url_parameter_arn
+          aws_ssm_parameter.convex_url.arn
         ]
       }
     ]
@@ -238,6 +238,23 @@ resource "aws_cloudwatch_log_group" "app" {
 
   tags = {
     Name = "${var.app_name}-log-group"
+  }
+}
+
+# Create the Convex URL SSM Parameter
+resource "aws_ssm_parameter" "convex_url" {
+  name        = "/convex-url"
+  description = "Convex URL for the application"
+  type        = "SecureString"
+  value       = var.convex_url_value != "" ? var.convex_url_value : "https://your-actual-convex-url.convex.cloud"
+
+  # Handle the case where the parameter already exists
+  lifecycle {
+    ignore_changes = [value]
+  }
+
+  tags = {
+    Name = "${var.app_name}-convex-url"
   }
 }
 
@@ -275,7 +292,7 @@ resource "aws_ecs_task_definition" "app" {
       secrets = [
         {
           name      = "NEXT_PUBLIC_CONVEX_URL"
-          valueFrom = var.convex_url_parameter_arn
+          valueFrom = aws_ssm_parameter.convex_url.arn  # Use the ARN of the parameter we created
         }
       ]
 
@@ -290,8 +307,8 @@ resource "aws_ecs_task_definition" "app" {
     }
   ])
 
-  # Ensure IAM role and log group are created first
-  depends_on = [aws_iam_role.ecs_task_execution_role, aws_cloudwatch_log_group.app]
+  # Ensure IAM role, log group, and SSM parameter are created first
+  depends_on = [aws_iam_role.ecs_task_execution_role, aws_cloudwatch_log_group.app, aws_ssm_parameter.convex_url]
 
   tags = {
     Name = "${var.app_name}-task-definition"

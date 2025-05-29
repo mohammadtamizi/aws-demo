@@ -43,6 +43,14 @@ variable "container_memory" {
 variable "convex_url_parameter_arn" {
   description = "The ARN of the SSM Parameter Store parameter containing the Convex URL"
   type        = string
+  default     = ""
+}
+
+variable "convex_url_value" {
+  description = "The value for the Convex URL parameter in SSM (leave empty to use default)"
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
 variable "environment" {
