@@ -199,7 +199,7 @@ jobs:
       - name: Get Application URL
         run: |
           cd terraform
-          echo "::notice::Development Application URL: $(terraform output -raw alb_dns_name)"
+          echo "::notice::Development Application URL: $(terraform output -raw task_access_instructions)"
 
   deploy-prod:
     name: Deploy to Production
@@ -271,4 +271,4 @@ jobs:
       - name: Get Application URL
         run: |
           cd terraform
-          echo "::notice::Production Application URL: $(terraform output -raw alb_dns_name)"
+          echo "::notice::Production Application URL: $(terraform output -raw task_access_instructions)"
