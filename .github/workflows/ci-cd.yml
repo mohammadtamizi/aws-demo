@@ -175,10 +175,14 @@ jobs:
         run: |
           cd terraform
           pwd
+          # Set a fallback container image
+          CONTAINER_IMAGE="amazon/amazon-ecs-sample:latest"
+          echo "Using default container image: $CONTAINER_IMAGE"
+
           # Use an absolute path for the tfplan file
           terraform plan \
             -var="aws_region=$AWS_REGION" \
-            -var="app_image=${{ steps.build-image.outputs.image || steps.set-image-output.outputs.image }}" \
+            -var="app_image=$CONTAINER_IMAGE" \
             -var="app_name=aws-demo-dev" \
             -var="environment=dev" \
             -var="convex_url_parameter_arn=$CONVEX_URL_PARAMETER_ARN" \
@@ -236,10 +240,14 @@ jobs:
         run: |
           cd terraform
           pwd
+          # Set a fallback container image
+          CONTAINER_IMAGE="amazon/amazon-ecs-sample:latest"
+          echo "Using default container image: $CONTAINER_IMAGE"
+
           # Use an absolute path for the tfplan file
           terraform plan \
             -var="aws_region=$AWS_REGION" \
-            -var="app_image=${{ steps.build-image.outputs.image || steps.set-image-output.outputs.image }}" \
+            -var="app_image=$CONTAINER_IMAGE" \
             -var="app_name=aws-demo" \
             -var="environment=prod" \
             -var="convex_url_parameter_arn=$CONVEX_URL_PARAMETER_ARN" \
