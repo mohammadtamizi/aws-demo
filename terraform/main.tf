@@ -2,15 +2,20 @@ provider "aws" {
   region = var.aws_region
 }
 
+# ============================================
+# COST-OPTIMIZED CONFIGURATION FOR DEMO/DEV
+# ============================================
+# The following configuration has been optimized to minimize AWS costs:
+# 1. Uses only ONE availability zone instead of multiple
+# 2. Eliminates NAT Gateways (one of the most expensive resources)
+# 3. Places ECS tasks in public subnets with public IPs
+# 4. Limits auto-scaling resources
+# ============================================
+
 # ECR Repository
 resource "aws_ecr_repository" "app_repo" {
   name                 = "${var.app_name}-repo"
   image_tag_mutability = "MUTABLE"
-
-  # Note: The repository-level image_scanning_configuration has been deprecated
-  # AWS now recommends configuring scanning at the registry level using:
-  # aws_ecr_registry_scanning_configuration resource
-  # For this demo, we'll rely on the registry-level default scanning configuration
 }
 
 # Configure ECR Registry Scanning (replacing deprecated repository-level scanning)
@@ -46,29 +51,16 @@ resource "aws_vpc" "main" {
   }
 }
 
-# Public Subnets
+# Public Subnet - COST SAVING: Using only one AZ instead of multiple
 resource "aws_subnet" "public" {
-  count                   = length(var.availability_zones)
+  # COST SAVING: Using only first AZ instead of multiple
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.${count.index + 1}.0/24"
-  availability_zone       = var.availability_zones[count.index]
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = var.availability_zones[0]
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "${var.app_name}-public-subnet-${count.index + 1}"
-  }
-}
-
-# Private Subnets
-resource "aws_subnet" "private" {
-  count                   = length(var.availability_zones)
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.${count.index + 10}.0/24"
-  availability_zone       = var.availability_zones[count.index]
-  map_public_ip_on_launch = false
-
-  tags = {
-    Name = "${var.app_name}-private-subnet-${count.index + 1}"
+    Name = "${var.app_name}-public-subnet-1"
   }
 }
 
@@ -81,28 +73,9 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-# Elastic IP for NAT Gateway
-resource "aws_eip" "nat" {
-  count  = length(var.availability_zones)
-  domain = "vpc"
-
-  tags = {
-    Name = "${var.app_name}-nat-eip-${count.index + 1}"
-  }
-}
-
-# NAT Gateway
-resource "aws_nat_gateway" "main" {
-  count         = length(var.availability_zones)
-  allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
-
-  tags = {
-    Name = "${var.app_name}-nat-gw-${count.index + 1}"
-  }
-
-  depends_on = [aws_internet_gateway.main]
-}
+# COST SAVING: NAT Gateway and Elastic IP resources have been removed
+# NAT Gateways are expensive (~$32/month each) and not needed for demo environments
+# where we can place ECS tasks in public subnets
 
 # Public Route Table
 resource "aws_route_table" "public" {
@@ -118,34 +91,13 @@ resource "aws_route_table" "public" {
   }
 }
 
-# Private Route Tables
-resource "aws_route_table" "private" {
-  count  = length(var.availability_zones)
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main[count.index].id
-  }
-
-  tags = {
-    Name = "${var.app_name}-private-rt-${count.index + 1}"
-  }
-}
-
 # Public Route Table Association
 resource "aws_route_table_association" "public" {
-  count          = length(var.availability_zones)
-  subnet_id      = aws_subnet.public[count.index].id
+  subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
 }
 
-# Private Route Table Association
-resource "aws_route_table_association" "private" {
-  count          = length(var.availability_zones)
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private[count.index].id
-}
+# COST SAVING: Private subnets, NAT Gateway, and private route tables have been removed
 
 # Security Group for ALB
 resource "aws_security_group" "alb" {
@@ -210,7 +162,8 @@ resource "aws_lb" "main" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
-  subnets            = aws_subnet.public[*].id
+  # COST SAVING: Using only one subnet instead of multiple
+  subnets            = [aws_subnet.public.id]
 
   enable_deletion_protection = false
 
@@ -242,31 +195,11 @@ resource "aws_lb_target_group" "app" {
   }
 }
 
-# ALB Listener
+# ALB Listener - COST SAVING: Using only HTTP listener for demo/dev
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = 80
   protocol          = "HTTP"
-
-  default_action {
-    type = "redirect"
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
-    }
-  }
-}
-
-# HTTPS Listener
-resource "aws_lb_listener" "https" {
-  count = var.acm_certificate_arn != "" ? 1 : 0
-
-  load_balancer_arn = aws_lb.main.arn
-  port              = 443
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn   = var.acm_certificate_arn
 
   default_action {
     type             = "forward"
@@ -274,13 +207,31 @@ resource "aws_lb_listener" "https" {
   }
 }
 
+# COST SAVING: HTTPS Listener commented out to avoid requiring an ACM certificate
+# Uncomment for production use
+# resource "aws_lb_listener" "https" {
+#   count = var.acm_certificate_arn != "" ? 1 : 0
+#
+#   load_balancer_arn = aws_lb.main.arn
+#   port              = 443
+#   protocol          = "HTTPS"
+#   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
+#   certificate_arn   = var.acm_certificate_arn
+#
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.app.arn
+#   }
+# }
+
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
   name = "${var.app_name}-cluster"
 
+  # COST SAVING: Disable Container Insights to save on CloudWatch costs
   setting {
     name  = "containerInsights"
-    value = "enabled"
+    value = "disabled"
   }
 
   tags = {
@@ -357,10 +308,10 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = aws_iam_policy.ecs_task_execution_policy.arn
 }
 
-# CloudWatch Log Group
+# CloudWatch Log Group - COST SAVING: Reducing log retention to 7 days
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/ecs/${var.app_name}"
-  retention_in_days = 30
+  retention_in_days = 7  # Reduced from 30 days to save on CloudWatch costs
 
   tags = {
     Name = "${var.app_name}-log-group"
@@ -372,6 +323,7 @@ resource "aws_ecs_task_definition" "app" {
   family                   = var.app_name
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
+  # COST SAVING: Using minimum viable CPU and memory
   cpu                      = var.container_cpu
   memory                   = var.container_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
@@ -428,12 +380,12 @@ resource "aws_ecs_task_definition" "app" {
   }
 }
 
-# ECS Service
+# ECS Service - COST SAVING: Using public subnet and assigning public IP
 resource "aws_ecs_service" "app" {
   name                              = "${var.app_name}-service"
   cluster                           = aws_ecs_cluster.main.id
   task_definition                   = aws_ecs_task_definition.app.arn
-  desired_count                     = var.app_count
+  desired_count                     = 1  # COST SAVING: Using only 1 task
   launch_type                       = "FARGATE"
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent        = 200
@@ -441,8 +393,10 @@ resource "aws_ecs_service" "app" {
 
   network_configuration {
     security_groups  = [aws_security_group.ecs_tasks.id]
-    subnets          = aws_subnet.private[*].id
-    assign_public_ip = false
+    # COST SAVING: Using public subnet instead of private subnet to avoid NAT Gateway
+    subnets          = [aws_subnet.public.id]
+    # COST SAVING: Assigning public IP so tasks can access internet directly
+    assign_public_ip = true
   }
 
   load_balancer {
@@ -451,57 +405,54 @@ resource "aws_ecs_service" "app" {
     container_port   = 3000
   }
 
-#   depends_on = [
-#   aws_iam_role.execution_role,
-#   aws_cloudwatch_log_group.logs
-# ]
-
   tags = {
     Name = "${var.app_name}-service"
   }
 }
 
-# Auto Scaling for ECS
-resource "aws_appautoscaling_target" "ecs_target" {
-  max_capacity       = 5
-  min_capacity       = 1
-  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.app.name}"
-  scalable_dimension = "ecs:service:DesiredCount"
-  service_namespace  = "ecs"
-}
-
-# Auto Scaling Policy - CPU
-resource "aws_appautoscaling_policy" "ecs_policy_cpu" {
-  name               = "${var.app_name}-cpu-autoscaling"
-  policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.ecs_target.resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
-
-  target_tracking_scaling_policy_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = "ECSServiceAverageCPUUtilization"
-    }
-    target_value       = 70
-    scale_in_cooldown  = 300
-    scale_out_cooldown = 300
-  }
-}
-
-# Auto Scaling Policy - Memory
-resource "aws_appautoscaling_policy" "ecs_policy_memory" {
-  name               = "${var.app_name}-memory-autoscaling"
-  policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.ecs_target.resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
-
-  target_tracking_scaling_policy_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
-    }
-    target_value       = 70
-    scale_in_cooldown  = 300
-    scale_out_cooldown = 300
-  }
-}
+# COST SAVING: Auto Scaling resources commented out for demo environment
+# Uncomment for production use
+# # Auto Scaling for ECS
+# resource "aws_appautoscaling_target" "ecs_target" {
+#   max_capacity       = 5
+#   min_capacity       = 1
+#   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.app.name}"
+#   scalable_dimension = "ecs:service:DesiredCount"
+#   service_namespace  = "ecs"
+# }
+#
+# # Auto Scaling Policy - CPU
+# resource "aws_appautoscaling_policy" "ecs_policy_cpu" {
+#   name               = "${var.app_name}-cpu-autoscaling"
+#   policy_type        = "TargetTrackingScaling"
+#   resource_id        = aws_appautoscaling_target.ecs_target.resource_id
+#   scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
+#   service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
+#
+#   target_tracking_scaling_policy_configuration {
+#     predefined_metric_specification {
+#       predefined_metric_type = "ECSServiceAverageCPUUtilization"
+#     }
+#     target_value       = 70
+#     scale_in_cooldown  = 300
+#     scale_out_cooldown = 300
+#   }
+# }
+#
+# # Auto Scaling Policy - Memory
+# resource "aws_appautoscaling_policy" "ecs_policy_memory" {
+#   name               = "${var.app_name}-memory-autoscaling"
+#   policy_type        = "TargetTrackingScaling"
+#   resource_id        = aws_appautoscaling_target.ecs_target.resource_id
+#   scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
+#   service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
+#
+#   target_tracking_scaling_policy_configuration {
+#     predefined_metric_specification {
+#       predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+#     }
+#     target_value       = 70
+#     scale_in_cooldown  = 300
+#     scale_out_cooldown = 300
+#   }
+# }
