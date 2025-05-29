@@ -44,16 +44,6 @@ variable "convex_url_parameter_arn" {
   type        = string
 }
 
-variable "clerk_publishable_key_parameter_arn" {
-  description = "The ARN of the SSM Parameter Store parameter containing the Clerk publishable key"
-  type        = string
-}
-
-variable "clerk_secret_key_parameter_arn" {
-  description = "The ARN of the SSM Parameter Store parameter containing the Clerk secret key"
-  type        = string
-}
-
 variable "environment" {
   description = "The environment (e.g., dev, staging, prod)"
   type        = string

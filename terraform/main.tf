@@ -293,9 +293,7 @@ resource "aws_iam_policy" "ecs_task_execution_policy" {
           "ssm:GetParameters"
         ]
         Resource = [
-          var.convex_url_parameter_arn,
-          var.clerk_publishable_key_parameter_arn,
-          var.clerk_secret_key_parameter_arn
+          var.convex_url_parameter_arn
         ]
       }
     ]
@@ -353,14 +351,6 @@ resource "aws_ecs_task_definition" "app" {
         {
           name      = "NEXT_PUBLIC_CONVEX_URL"
           valueFrom = var.convex_url_parameter_arn
-        },
-        {
-          name      = "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
-          valueFrom = var.clerk_publishable_key_parameter_arn
-        },
-        {
-          name      = "CLERK_SECRET_KEY"
-          valueFrom = var.clerk_secret_key_parameter_arn
         }
       ]
 

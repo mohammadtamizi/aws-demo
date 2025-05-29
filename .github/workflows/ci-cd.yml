@@ -19,8 +19,6 @@ env:
   TF_STATE_BUCKET_PROD: aws-demo-terraform-state-prod
   # Placeholder ARNs for SSM Parameters - replace with actual ARNs or parameterize
   CONVEX_URL_PARAMETER_ARN: "arn:aws:ssm:us-east-1:123456789012:parameter/convex-url"
-  CLERK_PUBLISHABLE_KEY_PARAMETER_ARN: "arn:aws:ssm:us-east-1:123456789012:parameter/clerk-publishable-key"
-  CLERK_SECRET_KEY_PARAMETER_ARN: "arn:aws:ssm:us-east-1:123456789012:parameter/clerk-secret-key"
 
 jobs:
   test:
@@ -184,8 +182,6 @@ jobs:
             -var="app_name=aws-demo-dev" \
             -var="environment=dev" \
             -var="convex_url_parameter_arn=$CONVEX_URL_PARAMETER_ARN" \
-            -var="clerk_publishable_key_parameter_arn=$CLERK_PUBLISHABLE_KEY_PARAMETER_ARN" \
-            -var="clerk_secret_key_parameter_arn=$CLERK_SECRET_KEY_PARAMETER_ARN" \
             -input=false \
             -out=/tmp/tfplan_dev
           # Debug - confirm plan file was created
@@ -247,8 +243,6 @@ jobs:
             -var="app_name=aws-demo" \
             -var="environment=prod" \
             -var="convex_url_parameter_arn=$CONVEX_URL_PARAMETER_ARN" \
-            -var="clerk_publishable_key_parameter_arn=$CLERK_PUBLISHABLE_KEY_PARAMETER_ARN" \
-            -var="clerk_secret_key_parameter_arn=$CLERK_SECRET_KEY_PARAMETER_ARN" \
             -input=false \
             -out=/tmp/tfplan_prod
           # Debug - confirm plan file was created
