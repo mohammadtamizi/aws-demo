@@ -13,6 +13,7 @@ variable "app_name" {
 variable "app_image" {
   description = "The Docker image to deploy (URL with tag)"
   type        = string
+  default     = "amazon/amazon-ecs-sample:latest"
 }
 
 variable "app_count" {
