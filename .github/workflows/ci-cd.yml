@@ -18,7 +18,7 @@ env:
   TF_STATE_BUCKET_DEV: aws-demo-terraform-state-dev
   TF_STATE_BUCKET_PROD: aws-demo-terraform-state-prod
   # Placeholder ARNs for SSM Parameters - replace with actual ARNs or parameterize
-  CONVEX_URL_PARAMETER_ARN: "arn:aws:ssm:us-east-1:123456789012:parameter/convex-url"
+  CONVEX_URL_PARAMETER_ARN: "arn:aws:ssm:us-east-1:651706782737:parameter/convex-url"
 
 jobs:
   test:
