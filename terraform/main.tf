@@ -46,6 +46,11 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
   enable_dns_support   = true
 
+  # Add lifecycle block to manage deletion
+  lifecycle {
+    create_before_destroy = true
+  }
+
   tags = {
     Name = "${var.app_name}-vpc"
   }
@@ -59,6 +64,9 @@ resource "aws_subnet" "public" {
   availability_zone       = var.availability_zones[0]
   map_public_ip_on_launch = true
 
+  # For proper deletion order
+  depends_on = [aws_vpc.main]
+
   tags = {
     Name = "${var.app_name}-public-subnet-1"
   }
@@ -67,6 +75,9 @@ resource "aws_subnet" "public" {
 # Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
+
+  # For proper deletion order
+  depends_on = [aws_vpc.main]
 
   tags = {
     Name = "${var.app_name}-igw"
@@ -86,6 +97,9 @@ resource "aws_route_table" "public" {
     gateway_id = aws_internet_gateway.main.id
   }
 
+  # For proper deletion order
+  depends_on = [aws_internet_gateway.main]
+
   tags = {
     Name = "${var.app_name}-public-rt"
   }
@@ -95,6 +109,9 @@ resource "aws_route_table" "public" {
 resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
+
+  # For proper deletion order
+  depends_on = [aws_subnet.public, aws_route_table.public]
 }
 
 # COST SAVING: Private subnets, NAT Gateway, and private route tables have been removed
@@ -117,6 +134,14 @@ resource "aws_security_group" "ecs_tasks" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Make sure VPC exists
+  depends_on = [aws_vpc.main]
+
+  # Add lifecycle block to ensure proper deletion order
+  lifecycle {
+    create_before_destroy = true
   }
 
   tags = {
@@ -265,6 +290,9 @@ resource "aws_ecs_task_definition" "app" {
     }
   ])
 
+  # Ensure IAM role and log group are created first
+  depends_on = [aws_iam_role.ecs_task_execution_role, aws_cloudwatch_log_group.app]
+
   tags = {
     Name = "${var.app_name}-task-definition"
   }
@@ -286,6 +314,11 @@ resource "aws_ecs_service" "app" {
     subnets          = [aws_subnet.public.id]
     # COST SAVING: Assigning public IP so tasks can access internet directly
     assign_public_ip = true
+  }
+
+  # Add lifecycle block to ensure proper deletion order
+  lifecycle {
+    create_before_destroy = true
   }
 
   tags = {
