@@ -1,328 +1,196 @@
-# AWS Deployment Demo
+# AWS Deployment Demo with Terraform
 
-This project demonstrates how to deploy a containerized web application to AWS using Terraform. The application is a simple landing page built with Next.js, Convex for the backend, and styled with Tailwind CSS and shadcn/ui components.
+This project demonstrates how to deploy a containerized Next.js application to AWS using Terraform, staying within the AWS Free Tier.
 
 ## Architecture
 
-![AWS Architecture](aws_containerized_website_deployment.png)
+The demo uses the following AWS services, all within the Free Tier:
 
-The architecture diagram shows how the application is deployed to AWS using:
-- ECR for container registry
-- ECS for container orchestration
-- Application Load Balancer for traffic distribution
-- VPC with multiple availability zones for high availability
-- CloudWatch for monitoring and logging
-- IAM roles for security
-- GitHub Actions for CI/CD pipeline
+* **Amazon ECR**: To host the Docker image
+* **Amazon EC2 (t2.micro)**: To run the application container using a specific Amazon Linux 2023 AMI (ami-0953476d60561c955)
+* **Temporary Public IP**: Automatically assigned to the EC2 instance (no Elastic IP costs)
 
-## Features
+## Project Components
 
-- Modern UI with Tailwind CSS and shadcn/ui
-- Docker containerization
-- AWS deployment with Terraform
-- CI/CD with GitHub Actions
+* **Frontend**: Next.js application with Tailwind CSS for styling
+* **Backend**: Convex for serverless backend functionality
+* **Container**: Docker for application packaging and deployment
+* **Infrastructure**: Terraform for AWS resource provisioning
+
+## Public IP Address Considerations
+
+This project uses temporary public IP addresses rather than Elastic IPs to avoid AWS charges:
+
+- **Temporary Public IPs**: Automatically assigned when the instance launches, released when terminated
+- **Cost Benefits**: No charges for temporary IPs (Elastic IPs incur charges when not attached to running instances)
+- **Important Note**: The IP address will change each time you redeploy. The deploy script will display the current IP address
 
 ## Prerequisites
 
-- Node.js 18+
-- npm
-- Docker
-- AWS account
-- Terraform
+* AWS CLI configured with appropriate access credentials
+* Terraform (>= 1.0.0)
+* Docker
+* jq
+* An SSH key pair (default: ~/.ssh/id_rsa.pub)
 
-## Getting Started
+## SSH Key Setup
 
-1. Clone the repository:
+The deployment requires an SSH key for secure access to the EC2 instance:
+
+1. If you don't have an SSH key, create one:
    ```bash
-   git clone https://github.com/yourusername/aws-presentation.git
-   cd aws-presentation
+   ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa
    ```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+2. Make sure your public key is located at `~/.ssh/id_rsa.pub`
 
-3. Set up environment variables:
-   Create a `.env.local` file with the following:
-   ```
-   # Convex
-   NEXT_PUBLIC_CONVEX_URL=your_convex_url
-   ```
-
-## Presentation Components
-
-This repository includes automation scripts to help you launch all the components needed for the AWS deployment presentation.
-
-### Components
-
-1. **AWS Demo App** (Port 3001):
-   - Next.js application showcasing AWS deployment
-   - Convex backend for real-time data
-
-2. **Presentation Slides** (Port 3030):
-   - Slidev presentation about AWS deployment
-   - Content covers containerization, Terraform, and AWS services
-
-### Starting the Presentation
-
-#### Option 1: Using separate terminal windows (Recommended for macOS)
-
-Run the following command:
-
-```bash
-./start_presentation_macos.py
-```
-
-This will:
-- Open 3 separate Terminal windows
-- Start the Next.js app in the first window
-- Start the Convex backend in the second window
-- Start the Slidev presentation in the third window
-- Automatically open the slides in your browser
-
-#### Option 2: Single process management
-
-Run the following command:
-
-```bash
-./start_presentation.py
-```
-
-This will:
-- Start all services as background processes
-- Monitor all processes in a single terminal
-- Provide a clean shutdown with Ctrl+C
-
-### Accessing the Services
-
-- **AWS Demo App**: http://localhost:3001
-- **Slides**: http://localhost:3030
-- **Slides Presenter Mode**: http://localhost:3030/presenter/
-
-### Starting Services Manually
-
-If you prefer to start services manually or if the automation scripts encounter issues:
-
-```bash
-# For the AWS Demo Next.js app
-cd aws-demo && npm run dev
-
-# For the AWS Demo Convex backend
-cd aws-demo && npx convex dev
-
-# For the slides
-cd slides && npx slidev --open
-```
-
-## CI/CD Setup with GitHub Actions
-
-This project includes a fully automated CI/CD pipeline using GitHub Actions that builds the Docker image, pushes it to ECR, and deploys the infrastructure with Terraform.
-
-### Initial AWS Setup (One-time)
-
-Before you can use the CI/CD pipeline, you need to set up a few AWS resources:
-
-1. Create an S3 bucket for Terraform state:
-   ```bash
-   aws s3 mb s3://aws-demo-terraform-state --region us-east-1
-   ```
-
-2. Create an ECR repository:
-   ```bash
-   aws ecr create-repository --repository-name aws-demo-app --region us-east-1
-   ```
-
-3. Create SSM Parameters for secrets:
-   ```bash
-   aws ssm put-parameter --name /aws-demo/convex-url --value "your_convex_url" --type SecureString
-   ```
-
-### GitHub Secrets
-
-Add the following secrets to your GitHub repository:
-
-1. `AWS_ACCESS_KEY_ID`: Your AWS access key with permissions for ECR, S3, and ECS
-2. `AWS_SECRET_ACCESS_KEY`: Your AWS secret key
-3. `CONVEX_URL_PARAMETER_ARN`: The ARN of the SSM parameter for Convex URL
-
-### Branch Strategy
-
-This project follows the Feature Branch Workflow with two main branches:
-
-- **main**: Production-ready code. Only merged from dev branch after thorough testing.
-- **dev**: Development branch where all feature work is integrated before promotion to main.
-
-### Workflow Guidelines
-
-1. **Always work on the dev branch** for new features and fixes
-2. Create feature branches from dev for specific tasks if needed
-3. Open pull requests to merge changes back to dev
-4. Periodically merge dev into main when features are stable
-
-When working locally:
-```bash
-# Make sure you're on dev branch before starting work
-git checkout dev
-git pull origin dev
-
-# After making changes
-git add .
-git commit -m "Descriptive message"
-git push origin dev
-```
-
-### Pipeline Workflow
-
-When code is pushed to the main branch, the CI/CD pipeline will:
-
-1. Run tests and linting
-2. Build the Docker image
-3. Push the image to ECR
-4. Run Terraform to provision or update the infrastructure
-5. Deploy the application to ECS Fargate
-6. Output the application URL
-
-## AWS Costs and Management
-
-It's important to understand the cost implications of the AWS services used in this project, especially if you plan to leave the infrastructure running for an extended period.
-
-### AWS Services Used and Free Tier Eligibility
-
-| Service | Free Tier | Notes |
-| ------- | --------- | ----- |
-| S3 | Yes | 5 GB Standard Storage, 20,000 GET, 2,000 PUT requests/month |
-| ECR | Yes (12 months) | 500 MB/month storage for free |
-| ECS Fargate | Yes (12 months) | 750 hours/month of usage (enough for 1 vCPU/0.5GB RAM container running 24/7) |
-| ALB | **No** | Charged per hour + per GB data processed |
-| VPC/Subnets | Yes | Free unless using NAT Gateway (not used in this demo) |
-| CloudWatch | Yes | Basic monitoring free, 5GB/month logs free |
-| IAM | Yes | Always free |
-| SSM Parameter Store | Yes | 10,000 parameters at Standard tier free per month |
-| Auto Scaling | Yes | Only pay for compute resources used |
-
-### Cost Management Best Practices
-
-1. **Always destroy infrastructure after demos**:
-   ```bash
-   cd terraform
-   terraform destroy
-   ```
-
-2. **Set up AWS Billing Alerts**:
-   - Navigate to AWS Billing Dashboard
-   - Create a budget with notifications when reaching thresholds
-
-3. **Monitor the Application Load Balancer (ALB)**:
-   - This is the main source of costs that isn't covered by the free tier
-   - Even a small demo with an ALB can cost a few dollars per month if left running
-
-4. **Use smaller Fargate task sizes**:
-   - The project defaults to 256 CPU units (0.25 vCPU) and 512 MB RAM
-   - This is the smallest viable size for running a Next.js application
-
-5. **Scale down when not in use**:
-   - Set desired_count to 0 in the ECS service when not using the application
-   - You can do this via the AWS Console or with this Terraform command:
-     ```bash
-     terraform apply -var="app_count=0"
-     ```
-
-### Estimated Costs
-
-For demo purposes with minimal traffic:
-- **S3, ECR, IAM, SSM, Auto Scaling**: Essentially free for typical demo usage
-- **ECS Fargate**: Free within the free tier limits (12 months)
-- **CloudWatch**: Free for basic usage
-- **ALB**: $0.0225 per hour (~$16.50 per month) + data transfer charges
-
-**IMPORTANT**: The ALB is the main cost driver. For cost-sensitive demos, consider destroying the infrastructure after each use or exploring alternative deployment options like AWS Elastic Beanstalk, Lightsail, or services like Vercel/Netlify for front-end applications.
+3. The default path can be changed in `terraform/variables.tf` if needed
 
 ## Deployment
 
-### Manual Deployment (Alternative to CI/CD)
+To deploy the application to AWS:
 
-If you prefer to deploy manually, follow these steps:
-
-#### Build and Push Docker Image
-
-1. Build the Docker image:
+1. **Configure AWS CLI**:
    ```bash
-   docker build -t aws-demo-app .
+   aws configure
    ```
 
-2. Tag and push to ECR:
+2. **Set Environment Variables**:
    ```bash
-   aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
-   docker tag aws-demo-app:latest YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/aws-demo-app:latest
-   docker push YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/aws-demo-app:latest
+   # Set your Convex backend URL
+   export NEXT_PUBLIC_CONVEX_URL="your-convex-url-here"
    ```
 
-#### Deploy with Terraform
-
-1. Navigate to the terraform directory:
+3. **Run the Deployment Script**:
    ```bash
-   cd terraform
+   ./deploy.sh
    ```
 
-2. Initialize Terraform:
+The script will:
+- Create the necessary AWS infrastructure (ECR, EC2, networking)
+- Build and push a Docker image to ECR
+- Deploy the application to the EC2 instance
+
+## EC2 Instance Configuration
+
+The EC2 instance is configured with:
+
+* **Amazon Linux 2023 AMI**: Fixed AMI ID (ami-0953476d60561c955)
+  * This specific AMI is used because it's eligible for AWS Free Tier in the us-east-1 region
+  * If deploying to a different region, you'll need to update this AMI ID in `terraform/modules/ec2/main.tf`
+* **Package Management**: Uses `dnf` for package installation
+* **Automatic Updates**: Daily container updates via cron job
+* **Health Monitoring**: Container health check every 5 minutes
+
+## Container Environment
+
+The Docker container runs with:
+
+* **Environment Variables**:
+  * `NODE_ENV=production`
+  * `NEXT_PUBLIC_CONVEX_URL` for backend connectivity
+* **Port Mapping**: Maps container port 3000 to host port 80
+* **Restart Policy**: Set to "always" for automatic recovery
+
+## Staying Within Free Tier Limits
+
+This deployment is designed to stay within AWS Free Tier limits:
+
+* **EC2**: Uses t2.micro instance (750 hours/month free)
+* **ECR**: Limited image storage (<500MB/month free)
+* **Temporary Public IP**: Free when attached to a running EC2 instance
+
+## Cost Monitoring
+
+To avoid unexpected AWS charges, it's recommended to:
+
+1. **Set up AWS Budgets**: Create a budget with alerts when costs exceed a threshold
    ```bash
-   terraform init -backend-config="bucket=aws-demo-terraform-state" -backend-config="key=terraform.tfstate" -backend-config="region=us-east-1"
+   aws budgets create-budget --account-id $(aws sts get-caller-identity --query 'Account' --output text) \
+     --budget file://budget.json --notifications-with-subscribers file://notifications.json
    ```
 
-3. Apply the configuration:
-   ```bash
-   terraform apply -var="aws_region=us-east-1" -var="app_image=YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/aws-demo-app:latest"
+2. **Enable AWS Cost Explorer**: Monitor costs through the AWS Console
+
+3. **Set up AWS CloudWatch Alarms**: Create alarms for unusual activity
+   
+4. **Always Clean Up Resources**: Run the cleanup script when you're done with the demo
+
+5. **Check AWS Billing Dashboard**: Regularly monitor your AWS billing dashboard
+
+⚠️ **Important Note**: Always run the cleanup script when you're done to ensure all resources are properly terminated and to avoid any unexpected charges.
+
+## Terraform State Management
+
+This project is configured to use Terraform's local backend, which means the state file is stored locally in the `terraform` directory. This approach simplifies the setup for demonstration purposes.
+
+For a production environment, you would typically want to use a remote backend (like S3) for better collaboration and security.
+
+## Cleanup
+
+To avoid any unexpected costs, always clean up resources when you're done:
+
+```bash
+./cleanup.sh
+```
+
+The cleanup script:
+1. Removes all Docker images from ECR
+2. Safely stops the EC2 instance
+3. Destroys all AWS resources created by Terraform
+4. Verifies successful resource cleanup
+
+## Troubleshooting
+
+### EC2 Instance Not Accessible
+- Check the security group rules
+- Verify that the EC2 instance is running
+- Confirm the Docker container is running with `docker ps`
+- Allow more time for instance initialization (the script waits 30 seconds)
+
+### ECR Authentication Issues
+- Ensure AWS CLI is properly configured
+- Try re-authenticating with: `aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <ECR_REPO_URL>`
+
+### Resource Destruction Errors
+- Resources must be destroyed in the correct order due to dependencies
+- The cleanup script handles this automatically
+- For manual cleanup, destroy resources in this order: EC2 → ECR 
+
+## Environment Variables
+
+The application uses the following environment variables:
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `NEXT_PUBLIC_CONVEX_URL` | The URL for your Convex backend | Yes | None |
+
+You can set these variables in several ways:
+
+1. **For local development**: Create a `.env.local` file in the aws-demo directory:
+   ```
+   NEXT_PUBLIC_CONVEX_URL=your-convex-url-here
    ```
 
-4. After deployment, you can access the application via the ALB DNS name:
+2. **For deployment**: Set the environment variable before running the deploy script:
    ```bash
-   terraform output alb_dns_name
+   export NEXT_PUBLIC_CONVEX_URL="your-convex-url-here"
+   ./deploy.sh
    ```
 
-## Stopping the Presentation Services
+3. **For production**: The deploy script will pass the environment variable to the Docker container and EC2 instance.
 
-### For Option 1 (separate terminal windows):
-- Simply close each Terminal window or press Ctrl+C in each window
+## Convex Backend
 
-### For Option 2 (single process):
-- Press Ctrl+C in the terminal where you ran the script
-- All child processes will be terminated automatically
+This project uses [Convex](https://www.convex.dev/) as the backend service, which provides:
 
-## Terraform Security Considerations
+1. **Real-time data synchronization** for tracking visitor statistics
+2. **Serverless backend** with automatic scaling
+3. **Integration with authentication** (via Clerk)
+4. **Database management** without the need to set up a separate database
 
-⚠️ **Important**: The Terraform configuration in this project contains deliberate security simplifications for demonstration purposes.
+To set up your own Convex backend:
 
-### Security Disclaimer
-
-This infrastructure is for demonstration and educational purposes only. Some configurations (such as open security groups, public subnets, and default encryption) are intentionally left less restrictive to simplify public access and testing.
-
-**Do not use these settings in production**:
-- Open access from all IPs (`0.0.0.0/0`) in security groups is a major security risk
-- Public subnets and internet-facing load balancers should be properly secured
-- ECR repositories should use immutable tags to prevent image tampering
-- Load balancers should be configured to drop invalid headers
-- VPC flow logs should be enabled for network traffic monitoring
-- Resources should use encryption for sensitive data
-- Security groups should have descriptive rules for better management
-
-For a production environment, these security concerns must be addressed according to your organization's security requirements and best practices.
-
-## Security Notice
-
-⚠️ **Important**: This is a demo project not intended for production use.
-
-- This repository contains dependencies with known security vulnerabilities (identified by `npm audit`).
-- These vulnerabilities primarily exist in transitive dependencies of various packages.
-- Since this is a temporary demonstration project that doesn't store sensitive user data, we've documented these issues rather than implementing breaking changes.
-
-For details on security considerations and the approach taken for this demo, please see [SECURITY.md](SECURITY.md).
-
-If you plan to use this code in production:
-1. Update all dependencies to secure versions
-2. Run `npm audit fix` to address vulnerabilities
-3. Test thoroughly after updates
-
-## License
-
-MIT
+1. Sign up at [Convex](https://www.convex.dev/)
+2. Create a new project
+3. Use the Convex URL provided by Convex as your `NEXT_PUBLIC_CONVEX_URL` environment variable 

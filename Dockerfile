@@ -1,11 +1,14 @@
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
 
-# Copy only the aws-demo package files for dependency installation
-COPY aws-demo/package.json aws-demo/package-lock.json ./
+# Install additional packages needed for building
+RUN apk add --no-cache libc6-compat
+
+# Copy package.json files - fix the path to match your project structure
+COPY aws-demo/package.json aws-demo/package-lock.json* ./
 
 # Install dependencies
 RUN npm ci
@@ -14,15 +17,16 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 
-# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
+# Copy the entire project directory
+COPY aws-demo/ .
 
-# Copy the aws-demo application files
-COPY aws-demo ./
+# Disable Next.js telemetry during build
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Set environment variables
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
+# Set up environment variables for build time using ARG
+# These need to be passed during build with --build-arg
+ARG NEXT_PUBLIC_CONVEX_URL
 
 # Build the application
 RUN npm run build
@@ -31,30 +35,29 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create a non-root user and group
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
+# Copy the built application
 COPY --from=builder /app/public ./public
 
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+# Set up runtime environment variables
+# These will be replaced with actual values at container runtime
+ENV NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL
 
-# Automatically leverage output traces to reduce image size
+# Use the standalone output directory created by Next.js
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Switch to the non-root user
 USER nextjs
 
+# Expose the port the app will run on
 EXPOSE 3000
 
-ENV PORT 3000
-# set hostname to localhost
-ENV HOSTNAME "0.0.0.0"
-
-# server.js is created by next build from the standalone output
-# https://nextjs.org/docs/pages/api-reference/next-config-js/output
-CMD ["node", "server.js"]
+# Start the application
+CMD ["node", "server.js"] 

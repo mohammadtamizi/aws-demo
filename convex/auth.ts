@@ -1,16 +1,11 @@
-/**
- * Authentication Configuration for Convex
- *
- * This file would typically contain authentication configuration for Convex,
- * such as setting up Clerk, Auth0, or other authentication providers.
- *
- * After removing Clerk authentication, this file is now a placeholder for:
- * - Future authentication setup
- * - Custom authorization rules
- * - User identity management
- *
- * For AWS demo purposes, authentication has been simplified.
- */
+import { v } from "convex/values";
+import { mutation } from "./_generated/server";
 
-// This file is now empty after removing Clerk authentication
-// You can add your own authentication logic here in the future if needed
+// Simple mutation that doesn't require authentication
+export const noAuth = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Any user can call this function
+    return { success: true };
+  },
+}); 

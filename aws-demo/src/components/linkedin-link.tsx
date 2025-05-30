@@ -6,9 +6,9 @@ import { LinkedInIcon } from "@/components/icons/linkedin-icon";
 export function LinkedInLink({ profileUrl }: { profileUrl: string }) {
   return (
     <div className="flex flex-col items-center gap-2">
-      <a
-        href={profileUrl}
-        target="_blank"
+      <a 
+        href={profileUrl} 
+        target="_blank" 
         rel="noopener noreferrer"
         className="inline-block"
       >
@@ -21,4 +21,4 @@ export function LinkedInLink({ profileUrl }: { profileUrl: string }) {
       <span className="text-sm text-gray-500">Connect on LinkedIn</span>
     </div>
   );
-}
+} 

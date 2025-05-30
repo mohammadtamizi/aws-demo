@@ -12,4 +12,4 @@ export function DownloadButton({ fileUrl }: { fileUrl: string }) {
       </Button>
     </a>
   );
-}
+} 

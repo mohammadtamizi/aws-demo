@@ -1,10 +1,14 @@
 "use client";
 
-import { ConvexProvider } from "convex/react";
-import { ConvexReactClient } from "convex/react";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { ReactNode } from "react";
+import React from "react";
 
-const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+// Use optional chaining and provide a fallback to prevent errors if the env var is missing
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "";
+
+// Initialize client only if URL is available
+const convex = new ConvexReactClient(convexUrl);
 
 export function ConvexClientProvider({
   children
@@ -13,7 +17,7 @@ export function ConvexClientProvider({
 }) {
   return (
     <ConvexProvider client={convex}>
-      {children}
+        {children}
     </ConvexProvider>
   );
-}
+} 

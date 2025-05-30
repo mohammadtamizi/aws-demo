@@ -1,0 +1,10 @@
+{
+  "project": "aws-demo",
+  "team": "mohammadhassan",
+  "functions": {
+    "codegen": {
+      "provider": "local",
+      "outputDir": "convex/_generated"
+    }
+  }
+} 

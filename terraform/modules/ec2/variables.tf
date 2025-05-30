@@ -1,31 +1,23 @@
-variable "aws_region" {
-  description = "AWS region to deploy resources"
-  type        = string
-  default     = "us-east-1"
-}
-
-variable "environment" {
-  description = "Environment name (dev, staging, prod)"
-  type        = string
-  default     = "dev"
-}
-
 variable "project_name" {
   description = "Project name used for resource naming"
   type        = string
-  default     = "aws-demo"
 }
 
-variable "app_port" {
-  description = "Port that the application runs on"
-  type        = number
-  default     = 3000
+variable "aws_region" {
+  description = "AWS region to deploy resources"
+  type        = string
 }
 
 variable "instance_type" {
   description = "EC2 instance type (must be in Free Tier)"
   type        = string
   default     = "t2.micro"
+}
+
+variable "app_port" {
+  description = "Port that the application runs on"
+  type        = number
+  default     = 3000
 }
 
 variable "ssh_cidr_block" {
@@ -37,8 +29,11 @@ variable "ssh_cidr_block" {
 variable "public_key_path" {
   description = "Path to public key for EC2 SSH access"
   type        = string
-  default     = "~/.ssh/id_rsa.pub"  # Use generic path that can be expanded by Terraform
-  sensitive   = true
+}
+
+variable "ecr_repository_url" {
+  description = "URL of the ECR repository"
+  type        = string
 }
 
 variable "convex_url" {

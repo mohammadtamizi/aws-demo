@@ -1,24 +1,30 @@
 output "ecr_repository_url" {
-  description = "The URL of the ECR repository"
-  value       = aws_ecr_repository.app_repo.repository_url
+  description = "URL of the ECR repository"
+  value       = module.ecr.repository_url
 }
 
-output "ecs_cluster_name" {
-  description = "The name of the ECS cluster"
-  value       = aws_ecs_cluster.main.name
+output "ecr_repository_name" {
+  description = "Name of the ECR repository"
+  value       = module.ecr.repository_name
 }
 
-output "ecs_service_name" {
-  description = "The name of the ECS service"
-  value       = aws_ecs_service.app.name
+output "ec2_instance_id" {
+  description = "ID of the EC2 instance"
+  value       = module.ec2.instance_id
 }
 
-output "task_access_instructions" {
-  description = "Instructions to access the running task"
-  value       = "Find the public IP in the AWS Console: ECS > Clusters > ${aws_ecs_cluster.main.name} > Service ${aws_ecs_service.app.name} > Tasks tab > Network > Public IP"
+output "ec2_public_ip" {
+  description = "Public IP address of the EC2 instance (temporary)"
+  value       = module.ec2.public_ip
 }
 
-output "cloudwatch_log_group" {
-  description = "The name of the CloudWatch log group"
-  value       = aws_cloudwatch_log_group.app.name
-}
+# No longer using Elastic IP to avoid costs
+# output "ec2_elastic_ip" {
+#   description = "Elastic IP allocated to the EC2 instance"
+#   value       = module.ec2.elastic_ip
+# }
+
+output "app_url" {
+  description = "URL to access the application"
+  value       = "http://${module.ec2.public_ip}"
+} 
