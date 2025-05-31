@@ -1,4 +1,4 @@
-# AWS Deployment Demo with Terraform
+# From local host to AWS with Terraform
 
 This project demonstrates how to deploy a containerized Next.js application to AWS using Terraform, staying within the AWS Free Tier.
 
